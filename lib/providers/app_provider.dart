@@ -312,33 +312,4 @@ class AppProvider extends ChangeNotifier {
   }
 }
 
-// Extension for copyWith
-extension VolunteerUserExtension on VolunteerUser {
-  VolunteerUser copyWith({
-    String? id,
-    String? name,
-    String? email,
-    String? profileImageUrl,
-    List<String>? skills,
-    int? totalHours,
-    int? level,
-    List<String>? unlockedBadges,
-    List<String>? joinedSquads,
-    DateTime? createdAt,
-    String? userType,
-  }) {
-    return VolunteerUser(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      skills: skills ?? this.skills,
-      totalHours: totalHours ?? this.totalHours,
-      level: level ?? this.level,
-      unlockedBadges: unlockedBadges ?? this.unlockedBadges,
-      joinedSquads: joinedSquads ?? this.joinedSquads,
-      createdAt: createdAt ?? this.createdAt,
-      userType: userType ?? this.userType,
-    );
-  }
-}
+

@@ -5,6 +5,31 @@ import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import 'dart:developer' as developer;
 
+// ==========================================
+// MOCK IMPLEMENTATIONS FOR OFFLINE/LOCAL RUNS
+// ==========================================
+class MockUser implements User {
+  @override
+  final String uid;
+  @override
+  final String? email;
+  
+  MockUser({required this.uid, this.email});
+  
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class MockUserCredential implements UserCredential {
+  @override
+  final User? user;
+  
+  MockUserCredential({this.user});
+  
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
 
@@ -14,19 +39,147 @@ class FirebaseService {
 
   FirebaseService._internal();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  // Mock State Variables
+  bool _useMock = false;
+  MockUser? _mockCurrentUser;
+  final Map<String, VolunteerUser> _mockUsers = {};
+  final Map<String, VolunteerEvent> _mockEvents = {};
+  final Map<String, Squad> _mockSquads = {};
+  final Map<String, ImpactRecord> _mockImpactRecords = {};
 
   // ==========================================
-  // AUTHENTICATION
+  // INITIALIZATION
   // ==========================================
 
   Future<void> initializeFirebase() async {
     try {
       await Firebase.initializeApp();
+      _useMock = false;
+      developer.log('Firebase successfully initialized.');
     } catch (e) {
-      developer.log('Firebase initialization', error: e);
+      _useMock = true;
+      _populateMockData();
+      developer.log('Firebase initialization failed, falling back to local MOCK mode.', error: e);
     }
+  }
+
+  void _populateMockData() {
+    developer.log('Populating rich mock data for local/offline run...');
+    
+    // Add some predefined volunteer users for leaderboard
+    final user1 = VolunteerUser(
+      id: 'vol1',
+      name: 'Alex Johnson',
+      email: 'alex@example.com',
+      profileImageUrl: '',
+      skills: ['Environment', 'Education'],
+      totalHours: 120,
+      level: 3,
+      unlockedBadges: ['first_step', 'committed', 'leader'],
+      joinedSquads: ['squad1'],
+      createdAt: DateTime.now().subtract(const Duration(days: 30)),
+      userType: 'volunteer',
+    );
+    final user2 = VolunteerUser(
+      id: 'vol2',
+      name: 'Sarah Smith',
+      email: 'sarah@example.com',
+      profileImageUrl: '',
+      skills: ['Healthcare', 'Disaster Relief'],
+      totalHours: 55,
+      level: 2,
+      unlockedBadges: ['first_step', 'committed'],
+      joinedSquads: ['squad1'],
+      createdAt: DateTime.now().subtract(const Duration(days: 15)),
+      userType: 'volunteer',
+    );
+    final user3 = VolunteerUser(
+      id: 'vol3',
+      name: 'David Chen',
+      email: 'david@example.com',
+      profileImageUrl: '',
+      skills: ['Technology', 'Animal Care'],
+      totalHours: 8,
+      level: 1,
+      unlockedBadges: ['first_step'],
+      joinedSquads: [],
+      createdAt: DateTime.now().subtract(const Duration(days: 5)),
+      userType: 'volunteer',
+    );
+    
+    _mockUsers[user1.id] = user1;
+    _mockUsers[user2.id] = user2;
+    _mockUsers[user3.id] = user3;
+
+    // Add some volunteer events
+    final event1 = VolunteerEvent(
+      id: 'event1',
+      title: 'Green Earth Tree Planting',
+      organizationId: 'org1',
+      organizationName: 'Eco Warriors',
+      description: 'Help us plant 500 native trees in the city park to combat urban heat islands and restore biodiversity.',
+      requiredSkills: ['Environment', 'Physical Labor'],
+      eventDate: DateTime.now().add(const Duration(days: 3)),
+      location: 'Central City Park, Sector 4',
+      totalSlots: 20,
+      filledSlots: 15,
+      registeredVolunteers: ['vol1', 'vol2'],
+      category: 'Environment',
+      estimatedHours: 4,
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
+    );
+    final event2 = VolunteerEvent(
+      id: 'event2',
+      title: 'Tech Skills Bootcamp for Youth',
+      organizationId: 'org2',
+      organizationName: 'Future Coders',
+      description: 'Mentor underprivileged high school students by teaching basic programming and computer skills.',
+      requiredSkills: ['Technology', 'Education'],
+      eventDate: DateTime.now().add(const Duration(days: 5)),
+      location: 'Community Tech Center',
+      totalSlots: 10,
+      filledSlots: 3,
+      registeredVolunteers: ['vol1'],
+      category: 'Education',
+      estimatedHours: 6,
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    );
+    final event3 = VolunteerEvent(
+      id: 'event3',
+      title: 'Local Animal Shelter Support',
+      organizationId: 'org3',
+      organizationName: 'Paws & Claws',
+      description: 'Spend a morning helping walk dogs, clean enclosures, and socialize animals waiting for adoption.',
+      requiredSkills: ['Animal Care'],
+      eventDate: DateTime.now().add(const Duration(days: 7)),
+      location: 'Happy Tails Animal Shelter',
+      totalSlots: 8,
+      filledSlots: 8, // Full event
+      registeredVolunteers: ['vol3'],
+      category: 'Animal Care',
+      estimatedHours: 3,
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    );
+
+    _mockEvents[event1.id] = event1;
+    _mockEvents[event2.id] = event2;
+    _mockEvents[event3.id] = event3;
+
+    // Add some squads
+    final squad1 = Squad(
+      id: 'squad1',
+      name: 'Impact Pioneers',
+      description: 'A squad focused on environmental conservation and hands-on community projects.',
+      creatorId: 'vol1',
+      memberIds: ['vol1', 'vol2'],
+      inviteCode: 'PIONEER1',
+      totalImpactHours: 175,
+      createdAt: DateTime.now().subtract(const Duration(days: 25)),
+    );
+    _mockSquads[squad1.id] = squad1;
   }
 
   /// Validates email format
@@ -55,6 +208,10 @@ class FirebaseService {
         .trim();
   }
 
+  // ==========================================
+  // AUTHENTICATION
+  // ==========================================
+
   Future<UserCredential?> signUpWithEmail(String email, String password, String name, String userType) async {
     try {
       // Validate inputs
@@ -73,6 +230,33 @@ class FirebaseService {
       if (userType != 'volunteer' && userType != 'organization') {
         developer.log('Invalid user type');
         return null;
+      }
+
+      if (_useMock) {
+        final emailExists = _mockUsers.values.any((u) => u.email == email.toLowerCase().trim());
+        if (emailExists) {
+          developer.log('Sign up error: Email already in use');
+          return null;
+        }
+        final uid = const Uuid().v4();
+        final sanitizedName = _sanitizeInput(name);
+        final user = VolunteerUser(
+          id: uid,
+          name: sanitizedName,
+          email: email.toLowerCase().trim(),
+          profileImageUrl: '',
+          skills: [],
+          totalHours: 0,
+          level: 1,
+          unlockedBadges: [],
+          joinedSquads: [],
+          createdAt: DateTime.now(),
+          userType: userType,
+        );
+        _mockUsers[uid] = user;
+        final mockUser = MockUser(uid: uid, email: user.email);
+        _mockCurrentUser = mockUser;
+        return MockUserCredential(user: mockUser);
       }
 
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -111,6 +295,36 @@ class FirebaseService {
         return null;
       }
 
+      if (_useMock) {
+        final matchedUsers = _mockUsers.values.where((u) => u.email == email.toLowerCase().trim());
+        if (matchedUsers.isNotEmpty) {
+          final user = matchedUsers.first;
+          final mockUser = MockUser(uid: user.id, email: user.email);
+          _mockCurrentUser = mockUser;
+          return MockUserCredential(user: mockUser);
+        } else {
+          // Auto-create in mock mode to make testing seamless
+          final uid = const Uuid().v4();
+          final user = VolunteerUser(
+            id: uid,
+            name: email.split('@')[0],
+            email: email.toLowerCase().trim(),
+            profileImageUrl: '',
+            skills: [],
+            totalHours: 0,
+            level: 1,
+            unlockedBadges: [],
+            joinedSquads: [],
+            createdAt: DateTime.now(),
+            userType: 'volunteer',
+          );
+          _mockUsers[uid] = user;
+          final mockUser = MockUser(uid: uid, email: user.email);
+          _mockCurrentUser = mockUser;
+          return MockUserCredential(user: mockUser);
+        }
+      }
+
       return await _auth.signInWithEmailAndPassword(
         email: email.toLowerCase().trim(),
         password: password,
@@ -122,10 +336,17 @@ class FirebaseService {
   }
 
   Future<void> signOut() async {
+    if (_useMock) {
+      _mockCurrentUser = null;
+      return;
+    }
     await _auth.signOut();
   }
 
   User? getCurrentUser() {
+    if (_useMock) {
+      return _mockCurrentUser;
+    }
     return _auth.currentUser;
   }
 
@@ -139,6 +360,10 @@ class FirebaseService {
       if (userId.isEmpty || userId.length > 128) {
         developer.log('Invalid user ID');
         return null;
+      }
+
+      if (_useMock) {
+        return _mockUsers[userId];
       }
 
       final doc = await _firestore.collection('users').doc(userId).get();
@@ -167,6 +392,14 @@ class FirebaseService {
       // Sanitize skills
       final sanitizedSkills = skills.map((s) => _sanitizeInput(s)).toList();
 
+      if (_useMock) {
+        final user = _mockUsers[userId];
+        if (user != null) {
+          _mockUsers[userId] = user.copyWith(skills: sanitizedSkills);
+        }
+        return;
+      }
+
       await _firestore.collection('users').doc(userId).update({'skills': sanitizedSkills});
     } catch (e) {
       developer.log('Update skills error', error: e);
@@ -189,6 +422,22 @@ class FirebaseService {
           sanitizedData[key] = value;
         }
       });
+
+      if (_useMock) {
+        final user = _mockUsers[userId];
+        if (user != null) {
+          String name = user.name;
+          String email = user.email;
+          if (sanitizedData.containsKey('name')) name = sanitizedData['name'] as String;
+          if (sanitizedData.containsKey('email')) email = sanitizedData['email'] as String;
+          
+          _mockUsers[userId] = user.copyWith(
+            name: name,
+            email: email,
+          );
+        }
+        return;
+      }
 
       await _firestore.collection('users').doc(userId).update(sanitizedData);
     } catch (e) {
@@ -238,6 +487,13 @@ class FirebaseService {
         createdAt: event.createdAt,
       );
 
+      if (_useMock) {
+        final id = const Uuid().v4();
+        final finalEvent = sanitizedEvent.copyWith(id: id);
+        _mockEvents[id] = finalEvent;
+        return id;
+      }
+
       final docRef = await _firestore.collection('events').add(sanitizedEvent.toFirestore());
       return docRef.id;
     } catch (e) {
@@ -248,10 +504,16 @@ class FirebaseService {
 
   Future<List<VolunteerEvent>> getAllEvents() async {
     try {
+      if (_useMock) {
+        final list = _mockEvents.values.toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      }
+
       final snapshot = await _firestore
           .collection('events')
           .orderBy('createdAt', descending: true)
-          .limit(100) // Prevent loading too many documents
+          .limit(100)
           .get();
       return snapshot.docs.map((doc) => VolunteerEvent.fromFirestore(doc)).toList();
     } catch (e) {
@@ -265,6 +527,12 @@ class FirebaseService {
       if (organizationId.isEmpty) {
         developer.log('Invalid organization ID');
         return [];
+      }
+
+      if (_useMock) {
+        final list = _mockEvents.values.where((e) => e.organizationId == organizationId).toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
       }
 
       final snapshot = await _firestore
@@ -284,6 +552,20 @@ class FirebaseService {
     try {
       if (eventId.isEmpty || volunteerId.isEmpty) {
         developer.log('Invalid event or volunteer ID');
+        return;
+      }
+
+      if (_useMock) {
+        final event = _mockEvents[eventId];
+        if (event != null) {
+          if (!event.registeredVolunteers.contains(volunteerId) && event.filledSlots < event.totalSlots) {
+            final updatedVolunteers = [...event.registeredVolunteers, volunteerId];
+            _mockEvents[eventId] = event.copyWith(
+              registeredVolunteers: updatedVolunteers,
+              filledSlots: event.filledSlots + 1,
+            );
+          }
+        }
         return;
       }
 
@@ -307,6 +589,20 @@ class FirebaseService {
     try {
       if (eventId.isEmpty || volunteerId.isEmpty) {
         developer.log('Invalid event or volunteer ID');
+        return;
+      }
+
+      if (_useMock) {
+        final event = _mockEvents[eventId];
+        if (event != null) {
+          if (event.registeredVolunteers.contains(volunteerId)) {
+            final updatedVolunteers = event.registeredVolunteers.where((id) => id != volunteerId).toList();
+            _mockEvents[eventId] = event.copyWith(
+              registeredVolunteers: updatedVolunteers,
+              filledSlots: event.filledSlots - 1,
+            );
+          }
+        }
         return;
       }
 
@@ -335,6 +631,31 @@ class FirebaseService {
       if (volunteerId.isEmpty) {
         developer.log('Invalid volunteer ID');
         return [];
+      }
+
+      if (_useMock) {
+        final user = _mockUsers[volunteerId];
+        if (user == null) return [];
+        final allEvents = await getAllEvents();
+
+        final scoredEvents = allEvents.map((event) {
+          int matchScore = 0;
+          for (final skill in event.requiredSkills) {
+            if (user.skills.contains(skill)) {
+              matchScore += 10;
+            }
+          }
+          if (!event.registeredVolunteers.contains(volunteerId)) {
+            matchScore += 5;
+          }
+          if (event.filledSlots < event.totalSlots) {
+            matchScore += 3;
+          }
+          return {'event': event, 'score': matchScore};
+        }).toList();
+
+        scoredEvents.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+        return scoredEvents.map((item) => item['event'] as VolunteerEvent).toList();
       }
 
       final userDoc = await _firestore.collection('users').doc(volunteerId).get();
@@ -391,6 +712,32 @@ class FirebaseService {
         return;
       }
 
+      if (_useMock) {
+        final id = const Uuid().v4();
+        final impactRecord = ImpactRecord(
+          id: id,
+          volunteerId: volunteerId,
+          eventId: eventId,
+          hoursLogged: hours,
+          loggedAt: DateTime.now(),
+          notes: _sanitizeInput(notes),
+        );
+        _mockImpactRecords[id] = impactRecord;
+
+        final user = _mockUsers[volunteerId];
+        if (user != null) {
+          final newTotalHours = user.totalHours + hours;
+          final newLevel = _calculateLevel(newTotalHours);
+          final newBadges = _calculateBadges(newTotalHours, user.unlockedBadges);
+          _mockUsers[volunteerId] = user.copyWith(
+            totalHours: newTotalHours,
+            level: newLevel,
+            unlockedBadges: newBadges,
+          );
+        }
+        return;
+      }
+
       final impactRecord = ImpactRecord(
         id: const Uuid().v4(),
         volunteerId: volunteerId,
@@ -428,6 +775,12 @@ class FirebaseService {
         return [];
       }
 
+      if (_useMock) {
+        final list = _mockImpactRecords.values.where((r) => r.volunteerId == volunteerId).toList();
+        list.sort((a, b) => b.loggedAt.compareTo(a.loggedAt));
+        return list;
+      }
+
       final snapshot = await _firestore
           .collection('impact_records')
           .where('volunteerId', isEqualTo: volunteerId)
@@ -449,6 +802,12 @@ class FirebaseService {
     try {
       if (limit <= 0 || limit > 500) {
         limit = 50;
+      }
+
+      if (_useMock) {
+        final list = _mockUsers.values.where((u) => u.userType == 'volunteer').toList();
+        list.sort((a, b) => b.totalHours.compareTo(a.totalHours));
+        return list.take(limit).toList();
       }
 
       final snapshot = await _firestore
@@ -485,6 +844,29 @@ class FirebaseService {
       }
 
       final inviteCode = const Uuid().v4().substring(0, 8).toUpperCase();
+      
+      if (_useMock) {
+        final id = const Uuid().v4();
+        final squad = Squad(
+          id: id,
+          name: _sanitizeInput(name),
+          description: _sanitizeInput(description),
+          creatorId: creatorId,
+          memberIds: [creatorId],
+          inviteCode: inviteCode,
+          totalImpactHours: 0,
+          createdAt: DateTime.now(),
+        );
+        _mockSquads[id] = squad;
+
+        final user = _mockUsers[creatorId];
+        if (user != null) {
+          final updatedSquads = [...user.joinedSquads, id];
+          _mockUsers[creatorId] = user.copyWith(joinedSquads: updatedSquads);
+        }
+        return id;
+      }
+
       final squad = Squad(
         id: const Uuid().v4(),
         name: _sanitizeInput(name),
@@ -520,6 +902,14 @@ class FirebaseService {
         return null;
       }
 
+      if (_useMock) {
+        try {
+          return _mockSquads.values.firstWhere((s) => s.inviteCode == inviteCode.toUpperCase());
+        } catch (_) {
+          return null;
+        }
+      }
+
       final snapshot = await _firestore
           .collection('squads')
           .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
@@ -539,6 +929,23 @@ class FirebaseService {
     try {
       if (squadId.isEmpty || volunteerId.isEmpty) {
         developer.log('Invalid squad or volunteer ID');
+        return;
+      }
+
+      if (_useMock) {
+        final squad = _mockSquads[squadId];
+        if (squad != null) {
+          if (!squad.memberIds.contains(volunteerId)) {
+            final updatedMembers = [...squad.memberIds, volunteerId];
+            _mockSquads[squadId] = squad.copyWith(memberIds: updatedMembers);
+
+            final user = _mockUsers[volunteerId];
+            if (user != null && !user.joinedSquads.contains(squadId)) {
+              final updatedSquads = [...user.joinedSquads, squadId];
+              _mockUsers[volunteerId] = user.copyWith(joinedSquads: updatedSquads);
+            }
+          }
+        }
         return;
       }
 
@@ -572,6 +979,19 @@ class FirebaseService {
         return [];
       }
 
+      if (_useMock) {
+        final user = _mockUsers[userId];
+        if (user == null) return [];
+        final squads = <Squad>[];
+        for (final squadId in user.joinedSquads) {
+          final squad = _mockSquads[squadId];
+          if (squad != null) {
+            squads.add(squad);
+          }
+        }
+        return squads;
+      }
+
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) return [];
 
@@ -596,6 +1016,21 @@ class FirebaseService {
     try {
       if (squadId.isEmpty) {
         developer.log('Invalid squad ID');
+        return;
+      }
+
+      if (_useMock) {
+        final squad = _mockSquads[squadId];
+        if (squad != null) {
+          int totalHours = 0;
+          for (final memberId in squad.memberIds) {
+            final user = _mockUsers[memberId];
+            if (user != null) {
+              totalHours += user.totalHours;
+            }
+          }
+          _mockSquads[squadId] = squad.copyWith(totalImpactHours: totalHours);
+        }
         return;
       }
 

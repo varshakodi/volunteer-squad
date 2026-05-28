@@ -255,12 +255,12 @@ class _AuthScreenState extends State<AuthScreen> {
               if (_errorMessage != null) const SizedBox(height: 16),
               
               if (_isSignUp) ...[
-                _buildTextField(_nameCtrl, 'Full Name', Icons.person, enabled: !_isLoading),
+                _buildTextField(_nameCtrl, 'Full Name', 'Enter your full name', Icons.person, enabled: !_isLoading),
                 const SizedBox(height: 16),
               ],
-              _buildTextField(_emailCtrl, 'Email', Icons.email, enabled: !_isLoading),
+              _buildTextField(_emailCtrl, 'Email Address', 'Enter your email', Icons.email, enabled: !_isLoading),
               const SizedBox(height: 16),
-              _buildTextField(_passwordCtrl, 'Password', Icons.lock, isPassword: true, enabled: !_isLoading),
+              _buildTextField(_passwordCtrl, 'Password', 'Enter your password', Icons.lock, isPassword: true, enabled: !_isLoading),
               
               if (_isSignUp) ...[
                 const SizedBox(height: 16),
@@ -378,25 +378,41 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, 
+  Widget _buildTextField(TextEditingController controller, String label, String hint, IconData icon, 
       {bool isPassword = false, bool enabled = true}) {
-    return TextField(
-      controller: controller,
-      obscureText: isPassword,
-      enabled: enabled,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: Colors.grey.shade500),
-        filled: true,
-        fillColor: Colors.black26,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade700),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-      ),
+        TextField(
+          controller: controller,
+          obscureText: isPassword,
+          enabled: enabled,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey.shade600),
+            prefixIcon: Icon(icon, color: Colors.grey.shade500),
+            filled: true,
+            fillColor: Colors.black26,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade700),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

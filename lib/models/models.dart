@@ -62,6 +62,34 @@ class VolunteerUser {
       'userType': userType,
     };
   }
+
+  VolunteerUser copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? profileImageUrl,
+    List<String>? skills,
+    int? totalHours,
+    int? level,
+    List<String>? unlockedBadges,
+    List<String>? joinedSquads,
+    DateTime? createdAt,
+    String? userType,
+  }) {
+    return VolunteerUser(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      skills: skills ?? this.skills,
+      totalHours: totalHours ?? this.totalHours,
+      level: level ?? this.level,
+      unlockedBadges: unlockedBadges ?? this.unlockedBadges,
+      joinedSquads: joinedSquads ?? this.joinedSquads,
+      createdAt: createdAt ?? this.createdAt,
+      userType: userType ?? this.userType,
+    );
+  }
 }
 
 class VolunteerEvent {
@@ -134,6 +162,40 @@ class VolunteerEvent {
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
+
+  VolunteerEvent copyWith({
+    String? id,
+    String? title,
+    String? organizationId,
+    String? organizationName,
+    String? description,
+    List<String>? requiredSkills,
+    DateTime? eventDate,
+    String? location,
+    int? totalSlots,
+    int? filledSlots,
+    List<String>? registeredVolunteers,
+    String? category,
+    int? estimatedHours,
+    DateTime? createdAt,
+  }) {
+    return VolunteerEvent(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      organizationId: organizationId ?? this.organizationId,
+      organizationName: organizationName ?? this.organizationName,
+      description: description ?? this.description,
+      requiredSkills: requiredSkills ?? this.requiredSkills,
+      eventDate: eventDate ?? this.eventDate,
+      location: location ?? this.location,
+      totalSlots: totalSlots ?? this.totalSlots,
+      filledSlots: filledSlots ?? this.filledSlots,
+      registeredVolunteers: registeredVolunteers ?? this.registeredVolunteers,
+      category: category ?? this.category,
+      estimatedHours: estimatedHours ?? this.estimatedHours,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 class Squad {
@@ -181,6 +243,28 @@ class Squad {
       'totalImpactHours': totalImpactHours,
       'createdAt': Timestamp.fromDate(createdAt),
     };
+  }
+
+  Squad copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? creatorId,
+    List<String>? memberIds,
+    String? inviteCode,
+    int? totalImpactHours,
+    DateTime? createdAt,
+  }) {
+    return Squad(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      creatorId: creatorId ?? this.creatorId,
+      memberIds: memberIds ?? this.memberIds,
+      inviteCode: inviteCode ?? this.inviteCode,
+      totalImpactHours: totalImpactHours ?? this.totalImpactHours,
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 }
 
