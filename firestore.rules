@@ -1,0 +1,163 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isVolunteer(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.userType == 'volunteer';
+    }
+    
+    function isOrganization(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.userType == 'organization';
+    }
+    
+    function validateEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+    
+    function validateString(str, minLen, maxLen) {
+      return str is string && str.size() >= minLen && str.size() <= maxLen;
+    }
+    
+    function validateNumber(num, min, max) {
+      return num is number && num >= min && num <= max;
+    }
+    
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isAuthenticated() && isOwner(userId);
+      
+      // Users can create their own profile during signup
+      allow create: if isAuthenticated() && isOwner(userId) &&
+                       validateString(request.resource.data.name, 1, 100) &&
+                       validateEmail(request.resource.data.email) &&
+                       request.resource.data.userType in ['volunteer', 'organization'] &&
+                       request.resource.data.totalHours == 0 &&
+                       request.resource.data.level == 1 &&
+                       request.resource.data.skills is list &&
+                       request.resource.data.skills.size() == 0;
+      
+      // Users can update their own profile
+      allow update: if isAuthenticated() && isOwner(userId) &&
+                       validateString(request.resource.data.name, 1, 100) &&
+                       request.resource.data.skills is list &&
+                       request.resource.data.skills.size() <= 20 &&
+                       request.resource.data.totalHours >= resource.data.totalHours &&
+                       request.resource.data.level >= resource.data.level;
+      
+      // No deletes allowed
+      allow delete: if false;
+    }
+    
+    // ==========================================
+    // EVENTS COLLECTION
+    // ==========================================
+    
+    match /events/{eventId} {
+      // Authenticated users can read events
+      allow read: if isAuthenticated();
+      
+      // Organizations can create events
+      allow create: if isAuthenticated() && isOrganization(request.auth.uid) &&
+                       validateString(request.resource.data.title, 1, 200) &&
+                       validateString(request.resource.data.description, 1, 2000) &&
+                       validateString(request.resource.data.location, 1, 100) &&
+                       validateNumber(request.resource.data.totalSlots, 1, 1000) &&
+                       validateNumber(request.resource.data.estimatedHours, 1, 100) &&
+                       request.resource.data.organizationId == request.auth.uid &&
+                       request.resource.data.filledSlots == 0 &&
+                       request.resource.data.registeredVolunteers is list &&
+                       request.resource.data.registeredVolunteers.size() == 0;
+      
+      // Only the organization that created the event can update it
+      allow update: if isAuthenticated() && 
+                       resource.data.organizationId == request.auth.uid &&
+                       request.resource.data.organizationId == resource.data.organizationId &&
+                       validateNumber(request.resource.data.filledSlots, 0, request.resource.data.totalSlots) &&
+                       request.resource.data.registeredVolunteers is list;
+      
+      // Only the organization that created the event can delete it
+      allow delete: if isAuthenticated() && resource.data.organizationId == request.auth.uid;
+    }
+    
+    // ==========================================
+    // SQUADS COLLECTION
+    // ==========================================
+    
+    match /squads/{squadId} {
+      // Authenticated users can read squads they're members of
+      allow read: if isAuthenticated() && 
+                     (request.auth.uid in resource.data.memberIds || 
+                      request.auth.uid == resource.data.creatorId);
+      
+      // Authenticated users can create squads
+      allow create: if isAuthenticated() &&
+                       validateString(request.resource.data.name, 1, 100) &&
+                       validateString(request.resource.data.description, 1, 500) &&
+                       request.resource.data.creatorId == request.auth.uid &&
+                       request.resource.data.memberIds == [request.auth.uid] &&
+                       request.resource.data.totalImpactHours == 0 &&
+                       request.resource.data.inviteCode is string &&
+                       request.resource.data.inviteCode.size() == 8;
+      
+      // Squad creator can update squad
+      allow update: if isAuthenticated() && 
+                       resource.data.creatorId == request.auth.uid &&
+                       request.resource.data.creatorId == resource.data.creatorId &&
+                       request.resource.data.memberIds is list;
+      
+      // Squad creator can delete squad
+      allow delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+    }
+    
+    // ==========================================
+    // IMPACT RECORDS COLLECTION
+    // ==========================================
+    
+    match /impact_records/{recordId} {
+      // Users can read their own impact records
+      allow read: if isAuthenticated() && 
+                     (isOwner(resource.data.volunteerId) || 
+                      isOrganization(request.auth.uid));
+      
+      // Volunteers can create impact records for themselves
+      allow create: if isAuthenticated() && 
+                       isVolunteer(request.auth.uid) &&
+                       request.resource.data.volunteerId == request.auth.uid &&
+                       validateNumber(request.resource.data.hoursLogged, 1, 100) &&
+                       validateString(request.resource.data.notes, 0, 500);
+      
+      // Only the volunteer who created the record can update it
+      allow update: if isAuthenticated() && 
+                       resource.data.volunteerId == request.auth.uid &&
+                       request.resource.data.volunteerId == resource.data.volunteerId;
+      
+      // Only the volunteer who created the record can delete it
+      allow delete: if isAuthenticated() && resource.data.volunteerId == request.auth.uid;
+    }
+    
+    // ==========================================
+    // DEFAULT DENY
+    // ==========================================
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
